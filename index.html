@@ -1,0 +1,946 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Neon Heli Rescue: Handheld</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400&family=Orbitron:wght@400;700;900&display=swap');
+
+  * { user-select:none; -webkit-user-select:none; touch-action:none; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body{ margin:0; padding:0; width:100%; height:100%; overflow:hidden; background:#0a0a0a; font-family:'Courier Prime',monospace; color:#fff; }
+  .font-orb{ font-family:'Orbitron',sans-serif; }
+  .glow-txt{ text-shadow:0 0 8px rgba(255,255,255,.8), 0 0 16px rgba(255,255,255,.35); }
+  .glow-box{ box-shadow:0 0 12px rgba(255,255,255,.2), inset 0 0 8px rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.7); }
+
+  /* ---------- Handheld shell ---------- */
+  .device{
+    display:flex; flex-direction:column;
+    width:100vw; height:100vh; height:100dvh;
+    background:
+      radial-gradient(circle at 15% 8%, #3a3a3d 0%, transparent 40%),
+      linear-gradient(155deg,#242426 0%,#141416 45%,#0c0c0d 100%);
+    padding: 10px 12px 10px;
+    gap: 8px;
+  }
+  .brand-row{
+    display:flex; align-items:center; justify-content:space-between;
+    padding: 2px 6px; flex:0 0 auto;
+  }
+  .brand-name{ font-size:10px; letter-spacing:.25em; color:#9a9a9a; font-weight:700; }
+  .brand-dots{ display:flex; gap:5px; }
+  .brand-dot{ width:5px; height:5px; border-radius:50%; background:#4a4a4a; }
+  .pwr-led{ width:7px; height:7px; border-radius:50%; background:#fff; box-shadow:0 0 6px #fff, 0 0 12px #fff; }
+
+  .screen-bezel{
+    flex: 0 0 54%;
+    border-radius: 18px;
+    background: linear-gradient(160deg,#1c1c1e,#0a0a0b);
+    padding: 10px;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.05), 0 4px 10px rgba(0,0,0,.5);
+    display:flex; flex-direction:column;
+    min-height: 0;
+  }
+  .screen-topline{
+    display:flex; justify-content:space-between; align-items:center;
+    padding: 0 4px 6px; flex:0 0 auto;
+  }
+  .screen-topline span{ font-size:9px; letter-spacing:.2em; color:#6b6b6b; font-family:'Orbitron',sans-serif; }
+  .screen-inner{
+    position:relative; flex:1 1 auto; min-height:0;
+    border-radius:10px; overflow:hidden; background:#000;
+    border: 2px solid rgba(255,255,255,.55);
+    box-shadow: 0 0 18px rgba(255,255,255,.12), inset 0 0 30px rgba(0,0,0,.9);
+  }
+  canvas{ display:block; width:100%; height:100%; background:#000; }
+
+  /* ---------- Control deck ---------- */
+  .deck{ flex:1 1 auto; position:relative; min-height:0; }
+
+  .stick-zone{
+    position:absolute; left: 4%; bottom: 8%;
+    width: 30vw; height: 30vw; max-width:150px; max-height:150px; min-width:96px; min-height:96px;
+    border-radius:50%; background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.28);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .stick-base{ position:absolute; width:40%; height:40%; border-radius:50%; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.25); }
+  .stick-knob{ position:absolute; width:34%; height:34%; border-radius:50%; background:#fff; box-shadow:0 0 12px #fff; transition:transform .06s ease; }
+
+  .deck-btn{
+    background:linear-gradient(160deg,#232325,#101011);
+    border:1px solid rgba(255,255,255,.55);
+    border-radius:9999px;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    box-shadow:0 3px 0 #000, 0 0 10px rgba(255,255,255,.12);
+    transition:transform .07s ease, box-shadow .07s ease;
+    color:#fff;
+  }
+  .deck-btn:active, .deck-btn.pressed{
+    transform: translateY(2px) scale(.95);
+    box-shadow:0 1px 0 #000, 0 0 16px rgba(255,255,255,.35);
+    background:linear-gradient(160deg,#3a3a3c,#1a1a1b);
+  }
+
+  .action-zone{
+    position:absolute; right: 4%; bottom: 6%;
+    display:flex; align-items:flex-end; gap: 3vw;
+  }
+  .winch-col{ display:flex; flex-direction:column; gap: 2.2vw; }
+  .btn-winch{ width: 16vw; height:16vw; max-width:74px; max-height:74px; min-width:52px; min-height:52px; font-size:9px; letter-spacing:.05em; }
+  .btn-winch span.arrow{ font-size:15px; line-height:1; }
+  .btn-boost{ width: 19vw; height:19vw; max-width:86px; max-height:86px; min-width:60px; min-height:60px; font-size:10px; letter-spacing:.08em; align-self:center; }
+
+  .center-zone{
+    position:absolute; left:50%; top: 6%; transform:translateX(-50%);
+    display:flex; gap:14px; align-items:center;
+  }
+  .pill-btn{
+    padding: 6px 14px; border-radius:9999px;
+    background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.4);
+    font-size:9px; letter-spacing:.15em; color:#ddd; font-family:'Orbitron',sans-serif;
+  }
+  .pill-btn:active{ background:rgba(255,255,255,.25); }
+
+  .deck-label{ position:absolute; bottom:1%; font-size:8px; letter-spacing:.2em; color:#555; }
+  .deck-label.left{ left:6%; }
+  .deck-label.right{ right:6%; text-align:right; }
+
+  /* Screen overlays (menus render *inside* the screen, not the whole page) */
+  .scr-overlay{
+    position:absolute; inset:0; z-index:30;
+    background:rgba(0,0,0,.94);
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    padding: 4% 5%; text-align:center; overflow:hidden;
+  }
+  .scr-panel{ width:100%; max-width:420px; }
+  .mission-card{
+    text-align:left; border:1px solid rgba(255,255,255,.35); border-radius:10px;
+    padding:8px 10px; margin-bottom:8px; background:rgba(255,255,255,.04);
+    display:flex; justify-content:space-between; align-items:center; gap:8px;
+  }
+  .mission-card.locked{ opacity:.4; }
+  .btn-white{
+    padding: 8px 0; border-radius:10px; background:#fff; color:#000; font-weight:700;
+    letter-spacing:.1em; box-shadow:0 0 16px rgba(255,255,255,.5);
+  }
+  .btn-white:active{ transform:scale(.97); }
+  .btn-ghost{
+    padding: 7px 0; border-radius:10px; border:1px solid rgba(255,255,255,.5); color:#fff;
+    letter-spacing:.1em; background:transparent;
+  }
+</style>
+</head>
+<body>
+
+<div class="device">
+
+  <div class="brand-row">
+    <div class="brand-name font-orb">NEON&nbsp;HC&nbsp;•&nbsp;RESCUE</div>
+    <div style="display:flex; align-items:center; gap:8px;">
+      <div class="pwr-led" id="pwrLed"></div>
+      <div class="brand-dots"><div class="brand-dot"></div><div class="brand-dot"></div><div class="brand-dot"></div></div>
+    </div>
+  </div>
+
+  <div class="screen-bezel">
+    <div class="screen-topline">
+      <span id="topLevelName">STORM PEAKS</span>
+      <span id="topClock">00:00</span>
+    </div>
+    <div class="screen-inner" id="screenInner">
+      <canvas id="gameCanvas"></canvas>
+
+      <!-- watermark -->
+      <div class="pointer-events-none absolute z-10" style="bottom:6px; left:50%; transform:translateX(-50%); opacity:.75;">
+        <div style="font-size:9px; letter-spacing:.28em; color:#fff;" class="glow-txt">absolute cinema</div>
+      </div>
+
+      <!-- HUD -->
+      <div id="hud" style="display:none;" class="absolute top-0 left-0 w-full z-20" >
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; padding:6px 8px; gap:6px;">
+          <div style="display:flex; gap:6px; align-items:center;">
+            <div class="glow-box" style="background:rgba(0,0,0,.8); border-radius:8px; padding:3px 7px; display:flex; align-items:center; gap:5px;">
+              <div style="width:6px;height:6px;border-radius:50%;background:#fff;box-shadow:0 0 6px #fff;"></div>
+              <div>
+                <div style="font-size:7px; letter-spacing:.15em; color:#999;">RESCUED</div>
+                <div id="survivorText" class="font-orb" style="font-size:11px; font-weight:700;">0/6</div>
+              </div>
+            </div>
+            <div class="glow-box" style="background:rgba(0,0,0,.8); border-radius:8px; padding:3px 7px;">
+              <div style="font-size:7px; letter-spacing:.15em; color:#999;">ABOARD</div>
+              <div id="capacityText" class="font-orb" style="font-size:11px; font-weight:700;">0/4</div>
+            </div>
+          </div>
+          <div style="display:flex; gap:6px; align-items:center;">
+            <div class="glow-box" style="background:rgba(0,0,0,.8); border-radius:8px; padding:3px 7px; width:78px;">
+              <div style="display:flex; justify-content:space-between; font-size:7px; letter-spacing:.1em; color:#bbb;">
+                <span>HULL</span><span id="healthPercent">100%</span>
+              </div>
+              <div style="width:100%; background:#1a1a1a; border-radius:9999px; height:4px; overflow:hidden; border:1px solid rgba(255,255,255,.25); margin-top:2px;">
+                <div id="healthBar" style="background:#fff; height:100%; width:100%;"></div>
+              </div>
+            </div>
+            <div class="glow-box" style="background:rgba(0,0,0,.8); border-radius:8px; padding:3px 7px; text-align:right;">
+              <div style="font-size:7px; letter-spacing:.15em; color:#999;">SCORE</div>
+              <div id="scoreText" class="font-orb" style="font-size:11px; font-weight:700;">0000</div>
+            </div>
+          </div>
+        </div>
+        <div id="fullWarning" style="display:none; text-align:center; margin-top:2px;">
+          <span class="glow-txt font-orb" style="font-size:10px; letter-spacing:.15em; color:#fff; background:rgba(0,0,0,.6); padding:2px 8px; border-radius:6px;">CAPACITY FULL — RETURN TO BASE</span>
+        </div>
+        <div id="lostWrap" style="display:none; position:absolute; top:6px; right:8px;">
+        </div>
+      </div>
+
+      <!-- Start / Mission select / Pause / End screens, all confined to the screen -->
+      <div id="scrTitle" class="scr-overlay">
+        <div class="scr-panel">
+          <div class="font-orb glow-txt" style="font-size:20px; font-weight:900; letter-spacing:.12em;">NEON HELI RESCUE</div>
+          <div style="font-size:9px; color:#888; letter-spacing:.2em; margin:4px 0 14px;">HANDHELD EDITION</div>
+          <div style="text-align:left; font-size:10px; color:#ccc; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.2); border-radius:10px; padding:10px 12px; line-height:1.7; margin-bottom:14px;">
+            <div><b class="glow-txt">STICK</b> steer the heli</div>
+            <div><b class="glow-txt">WINCH ▲▼</b> reel the cable</div>
+            <div><b class="glow-txt">BOOST</b> extra thrust</div>
+            <div>Capacity 4 — fly back to base to bank rescues</div>
+          </div>
+          <div class="btn-white" id="btnToSelect">START</div>
+        </div>
+      </div>
+
+      <div id="scrSelect" class="scr-overlay" style="display:none;">
+        <div class="scr-panel">
+          <div class="font-orb glow-txt" style="font-size:14px; letter-spacing:.15em; margin-bottom:10px;">SELECT MISSION</div>
+          <div id="missionList"></div>
+          <div class="btn-ghost" id="btnBackTitle" style="margin-top:6px;">BACK</div>
+        </div>
+      </div>
+
+      <div id="scrPause" class="scr-overlay" style="display:none;">
+        <div class="scr-panel">
+          <div class="font-orb glow-txt" style="font-size:16px; letter-spacing:.15em; margin-bottom:14px;">PAUSED</div>
+          <div class="btn-white" id="btnResume" style="margin-bottom:8px;">RESUME</div>
+          <div class="btn-ghost" id="btnPauseQuit">QUIT TO MISSIONS</div>
+        </div>
+      </div>
+
+      <div id="scrEnd" class="scr-overlay" style="display:none;">
+        <div class="scr-panel">
+          <div id="endTitle" class="font-orb glow-txt" style="font-size:16px; letter-spacing:.12em; margin-bottom:2px;">MISSION COMPLETE</div>
+          <div id="endSub" style="font-size:9px; color:#999; margin-bottom:10px;">All personnel accounted for</div>
+          <div style="text-align:left; font-size:10px; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.2); border-radius:10px; padding:9px 12px; margin-bottom:12px;">
+            <div style="display:flex; justify-content:space-between;"><span style="color:#999;">Rescued</span><span id="endRescued" class="font-orb">0/6</span></div>
+            <div style="display:flex; justify-content:space-between;" id="endLostRow"><span style="color:#999;">Lost</span><span id="endLost" class="font-orb">0</span></div>
+            <div style="display:flex; justify-content:space-between;"><span style="color:#999;">Score</span><span id="endScore" class="font-orb">0</span></div>
+          </div>
+          <div class="btn-white" id="btnNext" style="margin-bottom:8px;">NEXT MISSION</div>
+          <div class="btn-ghost" id="btnRetry" style="margin-bottom:8px;">RETRY</div>
+          <div class="btn-ghost" id="btnEndSelect">MISSION SELECT</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="deck">
+    <div class="center-zone">
+      <div class="pill-btn" id="btnPause">II PAUSE</div>
+    </div>
+
+    <div class="stick-zone" id="stickZone">
+      <div class="stick-base"></div>
+      <div class="stick-knob" id="stickKnob"></div>
+    </div>
+    <div class="deck-label left">STEER</div>
+
+    <div class="action-zone">
+      <div class="winch-col">
+        <div class="deck-btn btn-winch" id="btnWinchUp"><span class="arrow">▲</span><span>WINCH</span></div>
+        <div class="deck-btn btn-winch" id="btnWinchDown"><span class="arrow">▼</span><span>WINCH</span></div>
+      </div>
+      <div class="deck-btn btn-boost" id="btnBoost">BOOST</div>
+    </div>
+    <div class="deck-label right">ACTIONS</div>
+  </div>
+
+</div>
+
+<script>
+(function(){
+
+/* ===================== SOUND ===================== */
+class SoundEngine{
+  constructor(){ this.ctx=null; this.heliGain=null; }
+  init(){ if(this.ctx) return; const AC=window.AudioContext||window.webkitAudioContext; this.ctx=new AC(); this.startHeli(); }
+  startHeli(){
+    const osc=this.ctx.createOscillator(), lfo=this.ctx.createOscillator(), lfoGain=this.ctx.createGain();
+    this.heliGain=this.ctx.createGain();
+    osc.type='sawtooth'; osc.frequency.setValueAtTime(45,this.ctx.currentTime);
+    lfo.type='square'; lfo.frequency.setValueAtTime(10,this.ctx.currentTime);
+    lfoGain.gain.setValueAtTime(20,this.ctx.currentTime);
+    lfo.connect(lfoGain); lfoGain.connect(osc.frequency);
+    this.heliGain.gain.setValueAtTime(0.06,this.ctx.currentTime);
+    osc.connect(this.heliGain); this.heliGain.connect(this.ctx.destination);
+    osc.start(); lfo.start();
+  }
+  pitch(speed){ if(!this.heliGain) return; this.heliGain.gain.setTargetAtTime(Math.min(.15,.04+speed*.015),this.ctx.currentTime,.1); }
+  ping(f1,f2,dur,type){
+    if(!this.ctx) return; const now=this.ctx.currentTime;
+    const o=this.ctx.createOscillator(), g=this.ctx.createGain();
+    o.type=type||'sine'; o.frequency.setValueAtTime(f1,now); o.frequency.exponentialRampToValueAtTime(f2,now+dur);
+    g.gain.setValueAtTime(.25,now); g.gain.exponentialRampToValueAtTime(.01,now+dur);
+    o.connect(g); g.connect(this.ctx.destination); o.start(); o.stop(now+dur);
+  }
+  rescue(){ this.ping(520,1040,.3,'sine'); }
+  boom(){ this.ping(100,20,.5,'sawtooth'); }
+  thunder(){ this.ping(60,25,.7,'triangle'); }
+  splash(){ this.ping(300,80,.35,'triangle'); }
+  drown(){ this.ping(200,40,.6,'sine'); }
+  win(){ this.ping(440,880,.5,'sine'); setTimeout(()=>this.ping(660,1320,.4,'sine'),150); }
+}
+const sound=new SoundEngine();
+
+/* ===================== LEVELS ===================== */
+const LEVELS=[
+  { key:'mountain', name:'STORM PEAKS', subtitle:'Mountain Rescue', type:'mountain',
+    worldWidth:4200, worldHeight:2000, zoom:0.58, totalSurvivors:6, capacity:4,
+    lzX:310, lzHalf:90, heliStartX:310 },
+  { key:'ocean', name:'DEEP RESCUE', subtitle:'Ocean Rescue', type:'ocean',
+    worldWidth:4200, worldHeight:1300, zoom:0.64, totalSurvivors:6, capacity:4,
+    lzX:310, lzHalf:100, heliStartX:310 }
+];
+let levelUnlocked=[true,false];
+let currentLevelIdx=0;
+let level=LEVELS[0];
+
+/* ===================== CANVAS / VIEWPORT ===================== */
+const canvas=document.getElementById('gameCanvas');
+const ctx=canvas.getContext('2d');
+const screenInner=document.getElementById('screenInner');
+let screenWidth=300, screenHeight=200;
+let CAMERA_ZOOM=0.58;
+
+function resizeCanvas(){
+  const r=screenInner.getBoundingClientRect();
+  screenWidth=Math.max(50,r.width);
+  screenHeight=Math.max(50,r.height);
+  canvas.width=screenWidth;
+  canvas.height=screenHeight;
+}
+window.addEventListener('resize',resizeCanvas);
+window.addEventListener('orientationchange',()=>setTimeout(resizeCanvas,300));
+resizeCanvas();
+requestAnimationFrame(resizeCanvas);
+
+let WORLD_WIDTH=4200, WORLD_HEIGHT=2000;
+let cameraX=0, cameraY=0;
+
+/* ===================== STATE ===================== */
+let isGameRunning=false, isPaused=false;
+let score=0, rescuedCount=0, drownedCount=0, totalSurvivors=6;
+let simTime=0, missionTime=0;
+
+const keys={up:false,down:false,left:false,right:false,winchUp:false,winchDown:false,boost:false};
+const stick={active:false,touchId:null,startX:0,startY:0,dx:0,dy:0,maxRadius:45};
+
+/* ===================== HELICOPTER ===================== */
+class Helicopter{
+  constructor(x,y,capacity){
+    this.x=x; this.y=y; this.vx=0; this.vy=0; this.angle=0; this.rotorAngle=0;
+    this.width=50; this.height=26; this.health=100;
+    this.winchLength=70; this.maxWinchLength=320; this.minWinchLength=30; this.winchSpeed=2.0;
+    this.hookX=x; this.hookY=y+70;
+    this.attachedSurvivor=null;
+    this.passengers=0; this.capacity=capacity||4;
+  }
+  reset(x,y,capacity){
+    this.x=x; this.y=y; this.vx=0; this.vy=0; this.angle=0; this.health=100;
+    this.winchLength=70; this.attachedSurvivor=null; this.passengers=0; this.capacity=capacity||4;
+    this.hookX=x; this.hookY=y+70;
+  }
+  update(windX,windY){
+    this.rotorAngle+=0.35;
+    const accel=keys.boost?0.18:0.09;
+    let ax=0, ay=0;
+    if(keys.left||stick.dx<-0.15) ax-=accel*Math.abs(stick.dx||1);
+    if(keys.right||stick.dx>0.15) ax+=accel*Math.abs(stick.dx||1);
+    if(keys.up||stick.dy<-0.15) ay-=accel*Math.abs(stick.dy||1);
+    if(keys.down||stick.dy>0.15) ay+=accel*Math.abs(stick.dy||1);
+
+    const GRAVITY=0.018;
+    this.vx+=ax+windX*0.02;
+    this.vy+=ay+windY*0.02+GRAVITY;
+    this.vx*=0.982; this.vy*=0.982;
+    this.x+=this.vx; this.y+=this.vy;
+    this.angle=Math.min(Math.max(this.vx*0.03,-0.35),0.35);
+
+    if(this.x<60){this.x=60;this.vx=0;}
+    if(this.x>WORLD_WIDTH-60){this.x=WORLD_WIDTH-60;this.vx=0;}
+    if(this.y<60){this.y=60;this.vy=0;}
+
+    if(keys.winchDown) this.winchLength=Math.min(this.maxWinchLength,this.winchLength+this.winchSpeed);
+    if(keys.winchUp) this.winchLength=Math.max(this.minWinchLength,this.winchLength-this.winchSpeed);
+
+    const targetHookX=this.x+Math.sin(-this.angle)*12;
+    const targetHookY=this.y+this.winchLength;
+    this.hookX+=(targetHookX-this.hookX)*0.12-this.vx*0.15;
+    this.hookY+=(targetHookY-this.hookY)*0.12;
+
+    if(this.attachedSurvivor){
+      this.attachedSurvivor.x=this.hookX;
+      this.attachedSurvivor.y=this.hookY+12;
+      if(this.winchLength<=this.minWinchLength+10){
+        this.passengers++;
+        this.attachedSurvivor.pickedUpFinal=true;
+        this.attachedSurvivor=null;
+        sound.rescue();
+      }
+    }
+    sound.pitch(Math.hypot(this.vx,this.vy));
+  }
+  draw(){
+    ctx.save(); ctx.translate(this.x,this.y); ctx.rotate(this.angle);
+    ctx.shadowBlur=10; ctx.shadowColor='#fff'; ctx.strokeStyle='#fff'; ctx.fillStyle='#fff'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.ellipse(0,0,24,13,0,0,Math.PI*2); ctx.stroke();
+    ctx.beginPath(); ctx.arc(8,-2,9,-Math.PI/2,Math.PI/2); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(-22,0); ctx.lineTo(-46,-6); ctx.lineTo(-46,-16); ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(-18,14); ctx.lineTo(18,14);
+    ctx.moveTo(-12,14); ctx.lineTo(-12,9);
+    ctx.moveTo(12,14); ctx.lineTo(12,9);
+    ctx.stroke();
+    ctx.beginPath();
+    const rx=Math.cos(this.rotorAngle)*42;
+    ctx.moveTo(-rx,-18); ctx.lineTo(rx,-18);
+    ctx.moveTo(0,-18); ctx.lineTo(0,-13);
+    ctx.stroke();
+    ctx.beginPath(); ctx.arc(-46,-12,5,0,Math.PI*2); ctx.stroke();
+    ctx.restore();
+
+    ctx.save();
+    ctx.shadowBlur=6; ctx.shadowColor='#fff'; ctx.strokeStyle='#fff'; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.moveTo(this.x,this.y+12); ctx.lineTo(this.hookX,this.hookY); ctx.stroke();
+    ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(this.hookX,this.hookY,4,0,Math.PI*2); ctx.fill();
+    ctx.restore();
+
+    // passenger pips under the hull to show how many aboard
+    if(this.passengers>0){
+      ctx.save(); ctx.translate(this.x,this.y);
+      ctx.fillStyle='#fff'; ctx.shadowBlur=4; ctx.shadowColor='#fff';
+      for(let i=0;i<this.passengers;i++){
+        ctx.beginPath(); ctx.arc(-16+i*9,20,2.3,0,Math.PI*2); ctx.fill();
+      }
+      ctx.restore();
+    }
+  }
+}
+
+/* ===================== SURVIVOR ===================== */
+class Survivor{
+  constructor(x,y,type){
+    this.x=x; this.y=y; this.type=type||'stand';
+    this.isPickedUp=false; this.rescued=false; this.drowned=false; this.pickedUpFinal=false;
+    this.waveTimer=Math.random()*10;
+    this.breath = type==='swim' ? (55+Math.random()*45) : 100;
+  }
+  update(){
+    this.waveTimer+=0.08;
+    if(this.type==='swim' && !this.isPickedUp && !this.rescued && !this.drowned){
+      const rate = weather.surge && weather.surge.active ? 0.09 : 0.028;
+      this.breath-=rate;
+      const baseY=terrain.getHeightAt(this.x);
+      this.y = baseY + (100-this.breath)*0.16;
+      if(this.breath<=0){ this.breath=0; this.drowned=true; drownedCount++; sound.drown(); }
+    }
+    if(this.isPickedUp){ this.rescued=this.pickedUpFinal; }
+  }
+  draw(){
+    if(this.rescued||this.drowned) return;
+    ctx.save(); ctx.translate(this.x,this.y);
+    ctx.shadowBlur=8; ctx.shadowColor='#fff'; ctx.strokeStyle='#fff'; ctx.fillStyle='#fff'; ctx.lineWidth=2;
+
+    if(this.type==='swim'){
+      // breath ring
+      ctx.save();
+      ctx.strokeStyle='rgba(255,255,255,.8)'; ctx.lineWidth=2;
+      ctx.beginPath(); ctx.arc(0,-20,9,-Math.PI/2, -Math.PI/2 + (this.breath/100)*Math.PI*2);
+      ctx.stroke(); ctx.restore();
+
+      ctx.beginPath(); ctx.arc(0,-14,4,0,Math.PI*2); ctx.fill();
+      const armWave=Math.sin(this.waveTimer)*6;
+      ctx.beginPath();
+      ctx.moveTo(0,-11); ctx.lineTo(-7,-15+armWave);
+      ctx.moveTo(0,-11); ctx.lineTo(7,-15-armWave);
+      ctx.stroke();
+      // ripple
+      ctx.strokeStyle='rgba(255,255,255,.35)';
+      ctx.beginPath(); ctx.ellipse(0,-2,12,3,0,0,Math.PI*2); ctx.stroke();
+    } else {
+      ctx.beginPath(); ctx.arc(0,-16,4,0,Math.PI*2); ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(0,-12); ctx.lineTo(0,-2);
+      ctx.moveTo(0,-2); ctx.lineTo(-5,6);
+      ctx.moveTo(0,-2); ctx.lineTo(5,6);
+      const armWave=Math.sin(this.waveTimer)*7;
+      ctx.moveTo(0,-10); ctx.lineTo(-8,-14+armWave);
+      ctx.moveTo(0,-10); ctx.lineTo(8,-14-armWave);
+      ctx.stroke();
+      ctx.fillStyle='rgba(255,255,255,.5)';
+      ctx.beginPath(); ctx.arc(10,-15-armWave,3+Math.sin(this.waveTimer*2)*2,0,Math.PI*2); ctx.fill();
+    }
+    ctx.restore();
+  }
+}
+
+/* ===================== TERRAIN ===================== */
+class Terrain{
+  constructor(lvl){
+    this.lvl=lvl; this.type=lvl.type; this.t=0;
+    this.points=[];
+    this.waveAmp=14;
+    this.lzDeckY = lvl.type==='ocean' ? (lvl.worldHeight-300)-40 : (lvl.worldHeight-280);
+    this.waterLevel = lvl.worldHeight-300;
+    if(this.type==='mountain') this.generateMountain();
+  }
+  generateMountain(){
+    this.points=[];
+    const seg=50, total=WORLD_WIDTH/seg;
+    for(let i=0;i<=total;i++){
+      const x=i*seg;
+      const n1=Math.sin(i*0.08)*160, n2=Math.cos(i*0.025)*280;
+      let h=(WORLD_HEIGHT-380)+n1+n2;
+      if(x>=120 && x<=500) h=WORLD_HEIGHT-280;
+      this.points.push({x,y:h});
+    }
+  }
+  update(){ this.t+=1/60; }
+  getHeightAt(x){
+    if(this.type==='mountain'){
+      if(x<0) return this.points[0].y;
+      if(x>=WORLD_WIDTH) return this.points[this.points.length-1].y;
+      const seg=50, idx=Math.floor(x/seg);
+      const p1=this.points[idx], p2=this.points[idx+1]||p1;
+      const tt=(x-p1.x)/seg;
+      return p1.y+(p2.y-p1.y)*tt;
+    } else {
+      const lvl=this.lvl;
+      if(Math.abs(x-lvl.lzX)<=lvl.lzHalf) return this.lzDeckY;
+      const surge = weather.surge && weather.surge.active;
+      const amp = surge? 30:14;
+      const lift = surge? 10:0;
+      return this.waterLevel - lift + Math.sin(x*0.008+this.t*1.4)*amp;
+    }
+  }
+  draw(){
+    ctx.save();
+    if(this.type==='mountain'){
+      ctx.shadowBlur=8; ctx.shadowColor='#fff'; ctx.strokeStyle='#fff'; ctx.lineWidth=3;
+      ctx.beginPath(); ctx.moveTo(this.points[0].x,this.points[0].y);
+      for(let i=1;i<this.points.length;i++) ctx.lineTo(this.points[i].x,this.points[i].y);
+      ctx.stroke();
+      ctx.lineTo(WORLD_WIDTH,WORLD_HEIGHT); ctx.lineTo(0,WORLD_HEIGHT); ctx.closePath();
+      const grad=ctx.createLinearGradient(0,0,0,WORLD_HEIGHT);
+      grad.addColorStop(0,'rgba(255,255,255,.08)'); grad.addColorStop(1,'rgba(0,0,0,.95)');
+      ctx.fillStyle=grad; ctx.fill();
+    } else {
+      const seg=60;
+      ctx.shadowBlur=8; ctx.shadowColor='#fff'; ctx.strokeStyle='#fff'; ctx.lineWidth=2.5;
+      ctx.beginPath();
+      let first=true;
+      for(let x=0;x<=WORLD_WIDTH;x+=seg){
+        const y=this.getHeightAt(x);
+        if(first){ctx.moveTo(x,y); first=false;} else ctx.lineTo(x,y);
+      }
+      ctx.stroke();
+      for(let x=WORLD_WIDTH;x>=0;x-=seg){
+        // close bottom
+      }
+      ctx.lineTo(WORLD_WIDTH,WORLD_HEIGHT); ctx.lineTo(0,WORLD_HEIGHT); ctx.closePath();
+      const grad=ctx.createLinearGradient(0,this.waterLevel,0,WORLD_HEIGHT);
+      grad.addColorStop(0,'rgba(255,255,255,.06)'); grad.addColorStop(1,'rgba(0,0,0,.97)');
+      ctx.fillStyle=grad; ctx.fill();
+    }
+
+    // LZ pad / boat
+    const lvl=this.lvl, lzX=lvl.lzX, lzY=this.lzDeckY;
+    ctx.shadowBlur=12; ctx.shadowColor='#fff'; ctx.strokeStyle='#fff';
+    ctx.fillStyle='rgba(255,255,255,.15)'; ctx.lineWidth=2.5;
+    if(this.type==='mountain'){
+      ctx.beginPath(); ctx.strokeRect(lzX-80,lzY-4,160,8); ctx.fillRect(lzX-80,lzY-4,160,8);
+    } else {
+      // simple rescue boat/platform shape
+      ctx.beginPath();
+      ctx.moveTo(lzX-lvl.lzHalf,lzY+18);
+      ctx.lineTo(lzX-lvl.lzHalf+14,lzY);
+      ctx.lineTo(lzX+lvl.lzHalf-14,lzY);
+      ctx.lineTo(lzX+lvl.lzHalf,lzY+18);
+      ctx.closePath(); ctx.stroke(); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(lzX,lzY); ctx.lineTo(lzX,lzY-26); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(lzX,lzY-26); ctx.lineTo(lzX+22,lzY-20); ctx.lineTo(lzX,lzY-14); ctx.closePath(); ctx.fill();
+    }
+    ctx.fillStyle='#fff'; ctx.font='bold 20px Orbitron'; ctx.textAlign='center';
+    ctx.fillText(this.type==='mountain'?'LZ BASE':'RESCUE SHIP', lzX, lzY-32);
+    ctx.restore();
+  }
+}
+
+/* ===================== WEATHER ===================== */
+class WeatherSystem{
+  constructor(lvl){
+    this.type=lvl.type;
+    this.rain=[]; this.windX=0;
+    this.lightning={active:false,x:0,timer:0};
+    this.tornado = this.type==='mountain' ? {x:WORLD_WIDTH*0.55,y:WORLD_HEIGHT-450,radius:150} : null;
+    this.surge = this.type==='ocean' ? {active:false,timer:0,warn:0} : null;
+    for(let i=0;i<200;i++){
+      this.rain.push({x:Math.random()*WORLD_WIDTH,y:Math.random()*WORLD_HEIGHT,length:20+Math.random()*20,speed:10+Math.random()*6});
+    }
+  }
+  update(){
+    this.windX=Math.sin(Date.now()*0.0008)*2.0;
+    for(const d of this.rain){
+      d.x+=this.windX*2.5; d.y+=d.speed;
+      if(d.y>WORLD_HEIGHT){ d.y=0; d.x=Math.random()*WORLD_WIDTH; }
+    }
+    if(this.tornado) this.tornado.x=WORLD_WIDTH*0.55+Math.sin(Date.now()*0.0005)*180;
+
+    if(Math.random()<0.0022 && !this.lightning.active){
+      this.lightning.active=true; this.lightning.x=Math.random()*WORLD_WIDTH; this.lightning.timer=12;
+      sound.thunder();
+    }
+    if(this.lightning.active){ this.lightning.timer--; if(this.lightning.timer<=0) this.lightning.active=false; }
+
+    if(this.surge){
+      if(this.surge.warn>0){ this.surge.warn--; if(this.surge.warn===0){ this.surge.active=true; this.surge.timer=240; } }
+      else if(this.surge.active){ this.surge.timer--; if(this.surge.timer<=0) this.surge.active=false; }
+      else if(Math.random()<0.0015){ this.surge.warn=90; }
+    }
+  }
+  draw(){
+    ctx.save(); ctx.strokeStyle='rgba(255,255,255,.45)'; ctx.lineWidth=1.2; ctx.beginPath();
+    for(const d of this.rain){ ctx.moveTo(d.x,d.y); ctx.lineTo(d.x+this.windX*3,d.y+d.length); }
+    ctx.stroke(); ctx.restore();
+
+    if(this.tornado){
+      ctx.save();
+      const tx=this.tornado.x, ty=this.tornado.y;
+      ctx.shadowBlur=12; ctx.shadowColor='#fff'; ctx.strokeStyle='rgba(255,255,255,.7)'; ctx.lineWidth=1.5;
+      for(let i=0;i<11;i++){
+        const r=(i+1)*20;
+        const ao=Date.now()*0.008*(i%2===0?1:-1);
+        ctx.beginPath(); ctx.ellipse(tx,ty-i*42,r,r*0.28,ao,0,Math.PI*2); ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    if(this.surge && (this.surge.active||this.surge.warn>0)){
+      ctx.save();
+      ctx.globalAlpha = this.surge.active ? 0.5+Math.sin(Date.now()*0.02)*0.15 : 0.4+Math.sin(Date.now()*0.05)*0.3;
+      ctx.fillStyle='#fff'; ctx.font='bold 30px Orbitron'; ctx.textAlign='center';
+      ctx.shadowBlur=10; ctx.shadowColor='#fff';
+      ctx.fillText(this.surge.active?'SURGE!':'SWELL INCOMING', cameraX+ (screenWidth/CAMERA_ZOOM)/2, cameraY+60);
+      ctx.restore();
+    }
+
+    if(this.lightning.active){
+      ctx.save();
+      const lx=this.lightning.x;
+      ctx.shadowBlur=30; ctx.shadowColor='#fff'; ctx.strokeStyle='#fff'; ctx.lineWidth=3;
+      ctx.beginPath(); ctx.moveTo(lx,0);
+      let cy=0, cx=lx;
+      while(cy<WORLD_HEIGHT){ cy+=50+Math.random()*50; cx+=(Math.random()-0.5)*80; ctx.lineTo(cx,cy); }
+      ctx.stroke();
+      ctx.fillStyle='rgba(255,255,255,.12)';
+      ctx.fillRect(0,0,WORLD_WIDTH,WORLD_HEIGHT);
+      ctx.restore();
+    }
+  }
+}
+
+/* ===================== SETUP HELPERS ===================== */
+let helicopter, terrain, weather, survivors=[];
+
+function spawnSurvivors(){
+  survivors=[];
+  if(level.type==='mountain'){
+    const peaks=[900,1500,2100,2700,3300,3900].slice(0,level.totalSurvivors);
+    for(let i=0;i<level.totalSurvivors;i++){
+      const x=peaks[i]+(Math.random()-0.5)*120;
+      const y=terrain.getHeightAt(x);
+      survivors.push(new Survivor(x,y,'stand'));
+    }
+  } else {
+    for(let i=0;i<level.totalSurvivors;i++){
+      const x=700+ (i/(level.totalSurvivors-1))*(WORLD_WIDTH-1000) + (Math.random()-0.5)*140;
+      const y=terrain.getHeightAt(x);
+      survivors.push(new Survivor(x,y,'swim'));
+    }
+  }
+}
+
+function loadLevel(idx){
+  currentLevelIdx=idx; level=LEVELS[idx];
+  WORLD_WIDTH=level.worldWidth; WORLD_HEIGHT=level.worldHeight; CAMERA_ZOOM=level.zoom;
+  totalSurvivors=level.totalSurvivors;
+  document.getElementById('topLevelName').innerText=level.name;
+  terrain=new Terrain(level);
+  weather=new WeatherSystem(level);
+  helicopter=new Helicopter(level.heliStartX, terrain.type==='ocean'? terrain.lzDeckY-40 : WORLD_HEIGHT-380, level.capacity);
+  spawnSurvivors();
+  cameraX=0; cameraY=0;
+}
+
+function checkCollisions(){
+  const groundY=terrain.getHeightAt(helicopter.x);
+  if(helicopter.y+helicopter.height/2>=groundY){
+    const speed=Math.hypot(helicopter.vx,helicopter.vy);
+    const nearLZ=Math.abs(helicopter.x-level.lzX)<=level.lzHalf+30;
+
+    if(nearLZ && speed<3.8){
+      if(helicopter.passengers>0){
+        rescuedCount+=helicopter.passengers;
+        score+=helicopter.passengers*(level.type==='ocean'?650:500);
+        helicopter.passengers=0;
+        sound.rescue();
+      }
+      helicopter.y=groundY-helicopter.height/2;
+      helicopter.vy=0;
+    } else {
+      helicopter.health-=Math.max(12,speed*10);
+      helicopter.vy=-2.5;
+      sound.boom();
+      if(level.type==='ocean') sound.splash();
+      if(helicopter.health<=0) triggerEnd(false);
+    }
+  }
+
+  if(!helicopter.attachedSurvivor && helicopter.passengers<helicopter.capacity){
+    for(const s of survivors){
+      if(!s.rescued && !s.isPickedUp && !s.drowned){
+        const dist=Math.hypot(helicopter.hookX-s.x,helicopter.hookY-s.y);
+        if(dist<28){ s.isPickedUp=true; helicopter.attachedSurvivor=s; sound.rescue(); break; }
+      }
+    }
+  }
+
+  if(weather.tornado){
+    const dist=Math.hypot(helicopter.x-weather.tornado.x,helicopter.y-weather.tornado.y);
+    if(dist<weather.tornado.radius*2.2){
+      const pull=(1-dist/(weather.tornado.radius*2.2))*0.3;
+      helicopter.vx+=(weather.tornado.x-helicopter.x)*0.003*pull;
+      helicopter.vy+=(weather.tornado.y-helicopter.y)*0.003*pull;
+    }
+  }
+
+  if(weather.lightning.active && Math.abs(helicopter.x-weather.lightning.x)<55){
+    helicopter.health-=25; sound.boom();
+    if(helicopter.health<=0) triggerEnd(false);
+  }
+
+  const remaining=survivors.filter(s=>!s.rescued && !s.drowned && !s.isPickedUp);
+  if(remaining.length===0 && helicopter.passengers===0 && helicopter.attachedSurvivor===null){
+    triggerEnd(true);
+  }
+}
+
+/* ===================== HUD ===================== */
+function updateHUD(){
+  document.getElementById('survivorText').innerText=`${rescuedCount}/${totalSurvivors}`;
+  document.getElementById('capacityText').innerText=`${helicopter.passengers}/${helicopter.capacity}`;
+  document.getElementById('scoreText').innerText=score.toString().padStart(4,'0');
+  const hp=Math.max(0,Math.floor(helicopter.health));
+  document.getElementById('healthPercent').innerText=`${hp}%`;
+  document.getElementById('healthBar').style.width=`${hp}%`;
+  document.getElementById('fullWarning').style.display = helicopter.passengers>=helicopter.capacity ? 'block' : 'none';
+
+  missionTime+=1/60;
+  const mm=Math.floor(missionTime/60).toString().padStart(2,'0');
+  const ss=Math.floor(missionTime%60).toString().padStart(2,'0');
+  document.getElementById('topClock').innerText=`${mm}:${ss}`;
+}
+
+/* ===================== GAME LOOP ===================== */
+function gameLoop(){
+  if(!isGameRunning || isPaused) return;
+
+  terrain.update();
+  weather.update();
+  helicopter.update(weather.windX,0);
+  survivors.forEach(s=>s.update());
+  checkCollisions();
+
+  const viewW=screenWidth/CAMERA_ZOOM, viewH=screenHeight/CAMERA_ZOOM;
+  cameraX+=(helicopter.x-viewW/2-cameraX)*0.08;
+  cameraY+=(helicopter.y-viewH/2-cameraY)*0.08;
+  cameraX=Math.max(0,Math.min(WORLD_WIDTH-viewW,cameraX));
+  cameraY=Math.max(0,Math.min(WORLD_HEIGHT-viewH,cameraY));
+
+  ctx.clearRect(0,0,screenWidth,screenHeight);
+  ctx.save();
+  ctx.scale(CAMERA_ZOOM,CAMERA_ZOOM);
+  ctx.translate(-cameraX,-cameraY);
+
+  terrain.draw();
+  survivors.forEach(s=>s.draw());
+  helicopter.draw();
+  weather.draw();
+
+  ctx.restore();
+  updateHUD();
+  requestAnimationFrame(gameLoop);
+}
+
+/* ===================== SCREEN FLOW ===================== */
+const scr={
+  title:document.getElementById('scrTitle'),
+  select:document.getElementById('scrSelect'),
+  pause:document.getElementById('scrPause'),
+  end:document.getElementById('scrEnd')
+};
+function showScreen(name){
+  Object.values(scr).forEach(el=>el.style.display='none');
+  if(name && scr[name]) scr[name].style.display='flex';
+}
+
+function buildMissionList(){
+  const wrap=document.getElementById('missionList');
+  wrap.innerHTML='';
+  LEVELS.forEach((lvl,i)=>{
+    const locked=!levelUnlocked[i];
+    const card=document.createElement('div');
+    card.className='mission-card'+(locked?' locked':'');
+    card.innerHTML=`<div>
+        <div class="font-orb" style="font-size:12px; letter-spacing:.08em;">${lvl.name}</div>
+        <div style="font-size:9px; color:#999;">${lvl.subtitle}${locked?' • LOCKED':''}</div>
+      </div>
+      <div style="font-size:16px;">${locked?'🔒':'▶'}</div>`;
+    if(!locked){
+      card.addEventListener('click',()=>{ loadLevel(i); beginRun(); });
+    }
+    wrap.appendChild(card);
+  });
+}
+
+function beginRun(){
+  sound.init();
+  isGameRunning=true; isPaused=false;
+  score=0; rescuedCount=0; drownedCount=0; missionTime=0;
+  helicopter.reset(level.heliStartX, terrain.type==='ocean'? terrain.lzDeckY-40 : WORLD_HEIGHT-380, level.capacity);
+  spawnSurvivors();
+  document.getElementById('hud').style.display='block';
+  showScreen(null);
+  requestAnimationFrame(gameLoop);
+}
+
+function triggerEnd(success){
+  isGameRunning=false;
+  if(success && level.type==='mountain'){ levelUnlocked[1]=true; }
+  if(success) sound.win();
+
+  document.getElementById('endTitle').innerText = success ? 'MISSION COMPLETE' : 'MISSION FAILED';
+  document.getElementById('endSub').innerText = success
+    ? (drownedCount>0 ? 'Return complete — some were lost to the sea' : 'All personnel accounted for')
+    : 'Helicopter lost to the storm';
+  document.getElementById('endRescued').innerText=`${rescuedCount}/${totalSurvivors}`;
+  document.getElementById('endLostRow').style.display = level.type==='ocean' ? 'flex' : 'none';
+  document.getElementById('endLost').innerText=drownedCount;
+  document.getElementById('endScore').innerText=score;
+
+  const nextBtn=document.getElementById('btnNext');
+  const hasNext = success && currentLevelIdx<LEVELS.length-1;
+  nextBtn.style.display = hasNext ? 'block' : 'none';
+
+  document.getElementById('hud').style.display='none';
+  showScreen('end');
+}
+
+/* ===================== UI WIRING ===================== */
+document.getElementById('btnToSelect').addEventListener('click',()=>{ buildMissionList(); showScreen('select'); });
+document.getElementById('btnBackTitle').addEventListener('click',()=>{ showScreen('title'); });
+document.getElementById('btnEndSelect').addEventListener('click',()=>{ buildMissionList(); showScreen('select'); });
+document.getElementById('btnRetry').addEventListener('click',()=>{ loadLevel(currentLevelIdx); beginRun(); });
+document.getElementById('btnNext').addEventListener('click',()=>{ loadLevel(currentLevelIdx+1); beginRun(); });
+
+document.getElementById('btnPause').addEventListener('click',()=>{
+  if(!isGameRunning) return;
+  isPaused=true; showScreen('pause');
+});
+document.getElementById('btnResume').addEventListener('click',()=>{
+  isPaused=false; showScreen(null); requestAnimationFrame(gameLoop);
+});
+document.getElementById('btnPauseQuit').addEventListener('click',()=>{
+  isGameRunning=false; isPaused=false;
+  document.getElementById('hud').style.display='none';
+  buildMissionList(); showScreen('select');
+});
+
+/* ===================== STICK & BUTTONS ===================== */
+const stickZone=document.getElementById('stickZone');
+const stickKnob=document.getElementById('stickKnob');
+
+function updateStick(clientX,clientY){
+  let dx=clientX-stick.startX, dy=clientY-stick.startY;
+  const dist=Math.hypot(dx,dy);
+  if(dist>stick.maxRadius){ dx=(dx/dist)*stick.maxRadius; dy=(dy/dist)*stick.maxRadius; }
+  stickKnob.style.transform=`translate(${dx}px,${dy}px)`;
+  stick.dx=dx/stick.maxRadius; stick.dy=dy/stick.maxRadius;
+}
+stickZone.addEventListener('touchstart',(e)=>{
+  e.preventDefault();
+  const t=e.changedTouches[0]; const rect=stickZone.getBoundingClientRect();
+  stick.active=true; stick.touchId=t.identifier;
+  stick.startX=rect.left+rect.width/2; stick.startY=rect.top+rect.height/2;
+  updateStick(t.clientX,t.clientY);
+},{passive:false});
+window.addEventListener('touchmove',(e)=>{
+  if(!stick.active) return;
+  for(const t of e.changedTouches){ if(t.identifier===stick.touchId){ updateStick(t.clientX,t.clientY); break; } }
+},{passive:false});
+function resetStick(e){
+  if(!stick.active) return;
+  for(const t of e.changedTouches){
+    if(t.identifier===stick.touchId){ stick.active=false; stick.dx=0; stick.dy=0; stickKnob.style.transform='translate(0px,0px)'; break; }
+  }
+}
+window.addEventListener('touchend',resetStick);
+window.addEventListener('touchcancel',resetStick);
+
+function bindBtn(id,prop){
+  const btn=document.getElementById(id);
+  btn.addEventListener('touchstart',(e)=>{ e.preventDefault(); keys[prop]=true; btn.classList.add('pressed'); },{passive:false});
+  btn.addEventListener('touchend',(e)=>{ e.preventDefault(); keys[prop]=false; btn.classList.remove('pressed'); },{passive:false});
+  btn.addEventListener('mousedown',()=>{ keys[prop]=true; btn.classList.add('pressed'); });
+  window.addEventListener('mouseup',()=>{ keys[prop]=false; btn.classList.remove('pressed'); });
+}
+bindBtn('btnWinchUp','winchUp');
+bindBtn('btnWinchDown','winchDown');
+bindBtn('btnBoost','boost');
+
+window.addEventListener('keydown',(e)=>{
+  if(e.code==='KeyA'||e.code==='ArrowLeft') keys.left=true;
+  if(e.code==='KeyD'||e.code==='ArrowRight') keys.right=true;
+  if(e.code==='KeyW'||e.code==='ArrowUp') keys.up=true;
+  if(e.code==='KeyS'||e.code==='ArrowDown') keys.down=true;
+  if(e.code==='KeyE'||e.code==='PageDown') keys.winchDown=true;
+  if(e.code==='KeyQ'||e.code==='PageUp') keys.winchUp=true;
+  if(e.code==='ShiftLeft'||e.code==='Space') keys.boost=true;
+  if(e.code==='Escape' && isGameRunning){ isPaused=!isPaused; showScreen(isPaused?'pause':null); if(!isPaused) requestAnimationFrame(gameLoop); }
+});
+window.addEventListener('keyup',(e)=>{
+  if(e.code==='KeyA'||e.code==='ArrowLeft') keys.left=false;
+  if(e.code==='KeyD'||e.code==='ArrowRight') keys.right=false;
+  if(e.code==='KeyW'||e.code==='ArrowUp') keys.up=false;
+  if(e.code==='KeyS'||e.code==='ArrowDown') keys.down=false;
+  if(e.code==='KeyE'||e.code==='PageDown') keys.winchDown=false;
+  if(e.code==='KeyQ'||e.code==='PageUp') keys.winchUp=false;
+  if(e.code==='ShiftLeft'||e.code==='Space') keys.boost=false;
+});
+
+/* ===================== INIT ===================== */
+loadLevel(0);
+showScreen('title');
+
+})();
+</script>
+</body>
+</html>
